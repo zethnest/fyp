@@ -24,9 +24,14 @@ def print(arg):
 
 ddosWhitelist = {
         "nurizz.local": True,
-        "_gateway": True,
+        "_gateway"    : True,
         }
 ddosBlacklist = {
+        }
+ddosWatchlist = {
+        "byPort": {},
+        "byMAC": {},
+        "byIP": {},
         }
 def icmpHandler(log):
     timeMatch = re.match(r"(\d+):(\d+):(\d+\.\d+)", log)
@@ -57,7 +62,7 @@ def parse(line):
     else:
         bufferLog += line
 
-with open("./tcpdump_log2") as f:
+with open("./tcpdump.log") as f:
     while True:
         line = ''
         while len(line) == 0 or line[-1] != "\n":

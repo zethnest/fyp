@@ -1,3 +1,3 @@
 #!/usr/bin/sh
 
-tcpdump -i wlan0 -v > ./tcpdump_log2
+tcpdump -i wlan0 -v > ./tcpdump.log
