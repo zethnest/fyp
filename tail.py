@@ -23,8 +23,12 @@ def print(arg):
     oldPrint(arg)
 
 ddosWhitelist = {
-        "nurizz.local": True,
-        "_gateway"    : True,
+        "source": {
+            #"nurizz.local": True
+            },
+        "destination": {
+            "_gateway"    : True,
+            },
         }
 ddosBlacklist = {
         }
@@ -34,14 +38,17 @@ ddosWatchlist = {
         "byIP": {},
         }
 def icmpHandler(log):
-    timeMatch = re.match(r"(\d+):(\d+):(\d+\.\d+)", log)
+    timeMatch = re.match(r"(\d+):(\d+):(\d+\).(\d+)", log)
     addressMatch = re.search(r"(\S+)\s>\s([^:]+):", log)
     hour = timeMatch.group(1)
     minute = timeMatch.group(2)
     second = timeMatch.group(3)
+    milisecond = timeMatch.group(4)
     source = addressMatch.group(1)
     destination = addressMatch.group(2)
-    if source in ddosWhitelist or destination in ddosWhitelist:
+    if source in ddosWhitelist["source"] or destination in ddosWhitelist["destination"]:
+        oldPrint(f"Skipped {source} & {destination}")
+        print(f"{colors[printCount%len(colors)]}{log}{color.end}")
         return
     if source in ddosBlacklist or destination in ddosBlacklist:
         #TODO implement blocking
@@ -51,13 +58,14 @@ def icmpHandler(log):
 def parse(line):
     global bufferLog, printCount
 
-    newLog = r"\d+:\d+:\d+\.\d+"
+    newLog = r"(\d+:\d+:\d+\.\d+|\s+IP)"
     if re.match(newLog, line):
         bufferLog = bufferLog.strip()
 
         if re.search("proto ICMP", bufferLog):
             icmpHandler(bufferLog)
 
+        print(f"{colors[printCount%len(colors)]}{bufferLog}{color.end}")
         bufferLog = line
     else:
         bufferLog += line

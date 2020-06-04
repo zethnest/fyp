@@ -1,3 +1,3 @@
 #!/usr/bin/sh
 
-tcpdump -i wlan0 -v > ./tcpdump.log
+tcpdump -i enp0s25 -vvv > ./tcpdump.log
