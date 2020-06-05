@@ -38,7 +38,7 @@ ddosWatchlist = {
         "byIP": {},
         }
 def icmpHandler(log):
-    timeMatch = re.match(r"(\d+):(\d+):(\d+\).(\d+)", log)
+    timeMatch = re.match(r"(\d+):(\d+):(\d+)\.(\d+)", log)
     addressMatch = re.search(r"(\S+)\s>\s([^:]+):", log)
     hour = timeMatch.group(1)
     minute = timeMatch.group(2)
