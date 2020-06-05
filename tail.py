@@ -2,6 +2,8 @@
 import time
 import re
 
+import vyosinteract
+
 class color:
     header = '\033[95m'
     blue = '\033[94m'

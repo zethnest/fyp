@@ -128,10 +128,10 @@ class ArpTable:
                 return arp["iface"]
         return "No Match"
 
-vyos = Vyos("vyos","192.168.100.1")
-vyos.startSession()
-vyos.configure('set interfaces ethernet eth0 disable')
-arpTable = ArpTable(vyos.getArp())
-print(arpTable.getMacFromIp("192.168.100.5"))
-vyos.stopSession()
+#vyos = Vyos("vyos","192.168.100.1")
+#vyos.startSession()
+#vyos.configure('set interfaces ethernet eth0 disable')
+#arpTable = ArpTable(vyos.getArp())
+#print(arpTable.getMacFromIp("192.168.100.5"))
+#vyos.stopSession()
 #child.interact()
