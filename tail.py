@@ -24,10 +24,8 @@ def print(arg):
 
 ddosWhitelist = {
         "source": {
-            #"nurizz.local": True
             },
         "destination": {
-            "_gateway"    : True,
             },
         }
 ddosBlacklist = {

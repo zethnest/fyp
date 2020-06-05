@@ -1,3 +1,3 @@
 #!/usr/bin/sh
 
-tcpdump -i enp0s25 -vvv > ./tcpdump.log
+tcpdump -i enp0s3 -vvv > ./tcpdump.log

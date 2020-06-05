@@ -40,14 +40,14 @@ class Vyos:
         if self.configMode:
             self.send(f'save {saveMode}')
             before = self.getBefore()
-            if before.find('Warning:'):
+            if before.find('Warning:') != -1:
                 print(before)
 
     def commitConfig(self):
         if self.configMode:
             self.send('commit')
             before = self.getBefore()
-            if before.find('Commit Failed'):
+            if before.find('Commit Failed') != -1:
                 print(before)
 
     def exitConfig(self, forced = False):
@@ -58,7 +58,7 @@ class Vyos:
             else:
                 self.send('exit')
                 before = self.getBefore()
-                if before.find('Cannot exit'):
+                if before.find('Cannot exit') != -1:
                     print(before)
                 else:
                     self.configMode = False
@@ -71,7 +71,7 @@ class Vyos:
             self.configure(command)
             self.commitConfig()
             self.saveConfig()
-            self.exitConfig()
+            self.exitConfig(True)
 
     def getConfig(self, command):
         if self.configMode:
@@ -120,19 +120,18 @@ class ArpTable:
         for arp in self.arpTable:
             if ip == arp["address"]:
                 return arp["hwaddress"]
-        return None
+        return "No Match"
 
     def getInterfaceFromIp(self, ip):
         for arp in self.arpTable:
             if ip == arp["address"]:
                 return arp["iface"]
-        return None
+        return "No Match"
 
 vyos = Vyos("vyos","192.168.100.1")
 vyos.startSession()
-vyos.configure('set interfaces ethernet eth5 disable')
-print(vyos.getBefore())
+vyos.configure('set interfaces ethernet eth0 disable')
 arpTable = ArpTable(vyos.getArp())
-print(arpTable.getMacFromIp("192.168.200.50"))
+print(arpTable.getMacFromIp("192.168.100.5"))
 vyos.stopSession()
 #child.interact()
