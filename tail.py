@@ -26,9 +26,7 @@ def altColor():
 
 Print = print
 def print(arg):
-    global printCount
-    printCount += 1
-    Print(arg)
+    Print(f"{altColor()}{arg}{color.end}")
 
 class Time:
     def __init__(self, strHour, strMinute, strSecond, strMillisecond):
