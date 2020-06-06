@@ -3,7 +3,7 @@ import math
 import time
 import re
 
-import vyosinteract
+import vyos
 
 class color:
     header = '\033[95m'
@@ -86,8 +86,14 @@ def icmpHandler(log):
             else:
                 if source in packetInLimit:
                     packetInLimit[source] += 1
+                else:
+                    packetInLimit[source] = 1
         else:
             firstPacket[source] = currentTime
+
+    if source in packetInLimit:
+        if packetInLimit[source] >= packetLimit:
+            oldPrint("LIMIT REACHED")
 
     if source in ddosWhitelist["source"] or destination in ddosWhitelist["destination"]:
         oldPrint(f"Skipped {source} & {destination}")
