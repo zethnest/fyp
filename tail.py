@@ -68,13 +68,12 @@ bufferLog = ''
 
 async def unblocker(ip, time):
     global ddosWaitlist, vyos
-    oldPrint(f"waiting {time} to unblock")
-    await asyncio.asleep(time)
-    oldPrint("unblocking")
+    Print(f"waiting {time} to unblock")
+    await asyncio.sleep(time)
+    Print("unblocking")
     vyos.quickConfigure(f"delete interfaces ethernet eth0 disable")
-    oldPrint("unblocked")
-    ddosWaitlist["byPort"][ip] = False
-
+    Print("unblocked")
+    ddosWaitlist["byPort"].pop(ip, None)
 
 def blocker(ip):
     global ddosWaitlist, vyos
@@ -102,9 +101,9 @@ def icmpHandler(log):
     diffSecond = 0
     if source in lastTime:
         diffSecond = currentTime.diffTime(lastTime[source])
-
+        diffFirstPacket = firstPacket[source].diffTime(currentTime) if source in firstPacket else 0
         if source in firstPacket:
-            if diffSecond > 3 or (source in firstPacket and firstPacket[source].diffTime(currentTime) > 3):
+            if diffSecond > 3 or diffFirstPacket > 3:
                 firstPacket[source] = currentTime
             else:
                 packetInLimit[source] = packetInLimit[source]+1 if source in packetInLimit else 1
@@ -125,10 +124,11 @@ def icmpHandler(log):
         Print("block port")
         return
 
-    print(f"{diffSecond:.5f}s | {source} > {destination}")
+    if not source in ddosWaitlist["byPort"]:
+        print(f"{diffSecond:.5f}s | {source} > {destination}")
     lastTime[source] = currentTime
 
-def parse(line):
+async def parse(line):
     global bufferLog, printCount
 
     newLog = r"(\d+:\d+:\d+\.\d+|\s+IP)"
@@ -142,9 +142,10 @@ def parse(line):
     else:
         bufferLog += line
 
+    await asyncio.sleep(0.01)
+
 async def tail(filename):
     with open(filename) as f:
-        tailSkip = 0
         while True:
             line = ''
             while len(line) == 0 or line[-1] != "\n":
@@ -152,9 +153,6 @@ async def tail(filename):
                 if log == '':
                     continue
                 line += log
-            tailSkip %= tailSkip + 1
-            if tailSkip == 0:
-                await asyncio.sleep(0)
-            parse(line)
+            await parse(line)
 
 asyncio.run(tail("./tcpdump.log"))

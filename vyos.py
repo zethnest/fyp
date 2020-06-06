@@ -3,12 +3,6 @@ import pexpect
 import re
 
 class Vyos:
-    configMode = False
-    child = None
-    user = "vyos"
-    ip = "192.168.100.1"
-    destination = f"{user}@{ip}"
-
     def __init__(self, user, ip):
         self.configMode = False
         self.connection = None
