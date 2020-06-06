@@ -11,24 +11,25 @@ class Vyos:
 
     def __init__(self, user, ip):
         self.configMode = False
-        self.child = None
+        self.connection = None
         self.destination = f"{user}@{ip}"
 
     def startSession(self):
-        self.child = pexpect.spawn(f"ssh {self.destination}")
-        self.child.expect('vyos@vyos:~\$ ')
+        self.connection = pexpect.spawn(f"ssh {self.destination}")
+        self.connection.expect('vyos@vyos:~\$ ')
 
     def stopSession(self):
         if self.configMode:
             self.exitConfig()
-        self.child.sendline('exit')
+        self.connection.sendline('exit')
+        self.connection = None
 
     def send(self, command):
-        self.child.sendline(command)
-        self.child.expect('vyos@vyos')
+        self.connection.sendline(command)
+        self.connection.expect('vyos@vyos')
 
     def getBefore(self):
-        before = self.child.before.decode('utf-8')
+        before = self.connection.before.decode('utf-8')
         line1 = before.find("\r\n\r") + 3
         return before[line1:].strip()
 
@@ -63,15 +64,26 @@ class Vyos:
                 else:
                     self.configMode = False
 
+    def quickConfigure(self, command):
+        hasConnection = self.connection
+        if not hasConnection:
+            self.startSession()
+        inConfig = self.configMode
+        if not inConfig:
+            self.enterConfig()
+        self.configure(command)
+        self.commitConfig()
+        self.saveConfig()
+        if not inConfig:
+            self.exitConfig(True)
+        if not hasConnection:
+            self.stopSession()
+
     def configure(self, command):
         if self.configMode:
             self.send(command)
         else:
-            self.enterConfig()
-            self.configure(command)
-            self.commitConfig()
-            self.saveConfig()
-            self.exitConfig(True)
+            self.quickConfigure(command)
 
     def getConfig(self, command):
         if self.configMode:
@@ -129,6 +141,7 @@ class ArpTable:
         return "No Match"
 
 #vyos = Vyos("vyos","192.168.100.1")
+#vyos.quickConfigure('set interfaces ethernet eth0 disable')
 #vyos.startSession()
 #vyos.configure('set interfaces ethernet eth0 disable')
 #arpTable = ArpTable(vyos.getArp())
