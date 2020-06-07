@@ -24,6 +24,12 @@ def altColor():
     altColorNum += 1
     return altColors[altColorNum%len(altColors)]
 
+Print = print
+def print(arg):
+    global printCount
+    printCount += 1
+    Print(arg)
+
 class Time:
     def __init__(self, strHour, strMinute, strSecond, strMillisecond):
         self.__hour = int(strHour)
@@ -42,10 +48,6 @@ class Time:
                 math.floor(seconds/60%60),
                 math.floor(seconds%60),
                 float(seconds-int(seconds)))
-
-oldPrint = print
-def print(arg):
-    oldPrint(f"{altColor()}{arg}{color.end}")
 
 ddosWhitelist = {
         "source": {
@@ -75,30 +77,15 @@ async def unblocker(ip, time):
     oldPrint("unblocked")
     ddosWaitlist["byPort"][ip] = False
 
-async def blockUnblock(ip):
-    global ddosWaitlist, vyos
-    oldPrint("blocking")
-    vyos.quickConfigure(f"set interfaces ethernet eth0 disable")
-    oldPrint("blocked")
-    ddosWaitlist["byPort"][ip] = True
-    asyncio.create_task(unblocker(ip, 10))
-    #block by IP
-    #vyos.quickConfigure(f"set firewall group address-group BLOCKED-IP address {ip}")
-    #await asyncio.sleep(10)
-    #vyos.quickConfigure(f"delete firewall group address-group BLOCKED-IP address {ip}")
 
-def blockHandler(ip):
-    if ip in ddosWaitlist["byIP"]:
-        #block by ip
-        pass
-    elif ip in ddosWaitlist["byMAC"]:
-        #block by mac
-        pass
-    elif ip in ddosWaitlist["byPort"]:
-        #block by ip
-        pass
-    else:
-        pass
+def blocker(ip):
+    global ddosWaitlist, vyos
+    Print("blocking")
+    vyos.quickConfigure(f"set interfaces ethernet eth0 disable")
+    Print("blocked")
+    ddosWaitlist["byPort"][ip] = True
+    print(ddosWaitlist["byPort"])
+    asyncio.create_task(unblocker(ip, 10))
 
 def icmpHandler(log):
     global lastTime
@@ -128,15 +115,16 @@ def icmpHandler(log):
 
     if source in packetInLimit:
         if packetInLimit[source] >= packetLimit and not source in ddosWaitlist["byPort"]:
-            asyncio.create_task(blockUnblock(source))
+            Print("LIMIT REACHED")
+            blocker(source)
 
     if source in ddosWhitelist["source"] or destination in ddosWhitelist["destination"]:
-        oldPrint(f"Skipped {source} & {destination}")
+        Print(f"Skipped {source} & {destination}")
         print(f"{log}")
         return
     if source in ddosBlacklist or destination in ddosBlacklist:
         #TODO implement blocking
-        oldPrint("block port")
+        Print("block port")
         return
 
     print(f"{diffSecond:.5f}s | {source} > {destination}")
@@ -158,19 +146,17 @@ def parse(line):
 
 async def tail(filename):
     with open(filename) as f:
+        tailSkip = 0
         while True:
             line = ''
             while len(line) == 0 or line[-1] != "\n":
                 log = f.readline()
                 if log == '':
-                    await asyncio.sleep(0)
                     continue
                 line += log
-
+            tailSkip %= tailSkip + 1
+            if tailSkip == 0:
+                await asyncio.sleep(0)
             parse(line)
 
-def main():
-    asyncio.run(tail("./tcpdump.log"))
-
-if __name__ == "__main__":
-    main()
+asyncio.run(tail("./tcpdump.log"))
