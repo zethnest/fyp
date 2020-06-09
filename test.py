@@ -162,7 +162,7 @@ ddosBlacklist = {"source": [], "destination": []}
 ddosWatchlist = {}
 ddosBlocklist = []
 ddosInterval = 3
-ddosMaxPacket = 15
+ddosMaxPacket = 50
 ddosFirstPacket = {}
 ruleNumber = 2
 ruleMax = 9999
@@ -184,24 +184,34 @@ async def icmpHandler(log):
         print(log)
         print(e)
 
+    if not timeMatch or not addressMatch:
+        return
+
     if icmpType.find("echo reply") != -1:
         return
 
     sourceWhitelisted = source in ddosWhitelist["source"]
-    destinationWhitelisted = destination in ddosWhitelist["destination"]
-    if sourceWhitelisted or destinationWhitelisted:
-        Print("Whitelisted")
-        return
-
     sourceBlacklisted = source in ddosBlacklist["source"]
-    destinationBlacklisted = destination in ddosBlacklist["destination"]
-    if sourceBlacklisted or destinationBlacklisted:
-        Print("Blacklisted")
-        return
-
+    sourceBlocked = source in ddosBlocklist
     sourceTracked = source in ddosFirstPacket
     sourceDiffTime = currentTime.diffTime(ddosFirstPacket[source]["time"]) if sourceTracked else 0
     sourceTotalTrack = ddosFirstPacket[source]["count"] if sourceTracked else 0
+    destinationWhitelisted = destination in ddosWhitelist["destination"]
+    destinationBlacklisted = destination in ddosBlacklist["destination"]
+
+    if sourceWhitelisted or destinationWhitelisted:
+        return
+
+    if sourceBlacklisted or destinationBlacklisted:
+        if sourceBlocked:
+            return
+        Print("Block by ip")
+        Print("Blacklist")
+        ddosBlocklist += [source]
+        ddosBlacklist["source"] += [source]
+        asyncio.create_task(blockBlacklist(source))
+        return
+
     if not sourceTracked or sourceDiffTime >= ddosInterval:
         ddosFirstPacket[source] = {
                 "time" : currentTime,
@@ -210,7 +220,6 @@ async def icmpHandler(log):
     else:
         ddosFirstPacket[source]["count"] += 1
 
-    sourceBlocked = source in ddosBlocklist
     if sourceDiffTime < ddosInterval and sourceTotalTrack > ddosMaxPacket and not sourceBlocked:
         sourceWatched = source in ddosWatchlist
         if not sourceWatched:
@@ -229,8 +238,10 @@ async def icmpHandler(log):
             ddosWatchlist[source] = "ip"
             asyncio.create_task(blockByIp(source, ddosBlocklist, ddosWatchlist))
         elif ddosWatchlist[source] == "ip":
+            Print("Block by ip")
             Print("Blacklist")
             ddosWatchlist.pop(source, None)
+            ddosBlocklist += [source]
             ddosBlacklist["source"] += [source]
             asyncio.create_task(blockBlacklist(source))
 
@@ -281,33 +292,5 @@ async def main():
     #await initRouter()
     await tail("./tcpdump.log")
 
-def test():
-    #await quickConfigure([
-    #    f"set firewall name block rule {myRuleNumber} action reject"
-    #    f"set firewall name block rule {myRuleNumber} source mac-address {mac}"
-    #    ])
-    vyos = pexpect.spawn(f"ssh vyos@192.168.100.1")
-    vyos.expect("vyos@vyos")
-    print(vyos)
-    vyos.sendline("configure")
-    vyos.expect("vyos@vyos")
-    print(vyos)
-    vyos.sendline("configure")
-    vyos.expect("vyos@vyos")
-    print(vyos)
-    vyos.sendline(f"set firewall name block rule 2 action reject")
-    vyos.expect("vyos@vyos")
-    print(vyos)
-    vyos.sendline(f"set firewall name block rule 2 source mac-address 08:00:27:75:18:cb")
-    vyos.expect("vyos@vyos")
-    print(vyos)
-    vyos.sendline("commit")
-    vyos.expect("vyos@vyos")
-    print(vyos)
-    vyos.sendline("save")
-    vyos.expect("vyos@vyos")
-    print(vyos)
-
 if __name__ == "__main__":
     asyncio.run(main())
-    #test()
