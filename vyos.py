@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import pexpect
 import re
+from arptable import ArpTable
 
 class Vyos:
     def __init__(self, user, ip):
@@ -23,9 +24,10 @@ class Vyos:
         self.connection.expect('vyos@vyos')
 
     def getBefore(self):
-        before = self.connection.before.decode('utf-8')
+        before = re.sub(r'\x1b\[.', '', self.connection.before.decode('utf-8'))
+        print(before.encode())
         line1 = before.find("\r\n\r") + 3
-        return before[line1:].strip()
+        return before[line1:]
 
     def enterConfig(self):
         self.send('configure')
@@ -102,43 +104,17 @@ class Vyos:
     def getArp(self):
         return self.getStatus("protocols static arp")
 
-class ArpTable:
-    arpTable = []
+    def getFirewallRules(self):
+        return self.getConfig("firewall name")
 
-    def __init__(self, table):
-        headerMatch = re.search(r"(Address\s+)(HWtype\s+)(HWaddress\s+)(Flags\s+)(Mask\s+)(.*)", table)
-
-        line1 = table.find("\r\n") + 2
-        table = table[line1:]
-        for line in table.splitlines():
-            if line == '':
-                break
-            self.arpTable.insert(0, {
-                "address" : line[headerMatch.start(1):headerMatch.end(1)].strip(),
-                "hwtype" : line[headerMatch.start(2):headerMatch.end(2)].strip(),
-                "hwaddress" : line[headerMatch.start(3):headerMatch.end(3)].strip(),
-                "flags" : line[headerMatch.start(4):headerMatch.end(4)].strip(),
-                "mask" : line[headerMatch.start(5):headerMatch.end(5)].strip(),
-                "iface" : line[headerMatch.start(6):headerMatch.end(6)].strip(),
-            })
-
-    def getMacFromIp(self, ip):
-        for arp in self.arpTable:
-            if ip == arp["address"]:
-                return arp["hwaddress"]
-        return "No Match"
-
-    def getInterfaceFromIp(self, ip):
-        for arp in self.arpTable:
-            if ip == arp["address"]:
-                return arp["iface"]
-        return "No Match"
-
-#vyos = Vyos("vyos","192.168.100.1")
-#vyos.quickConfigure('set interfaces ethernet eth0 disable')
-#vyos.startSession()
-#vyos.configure('set interfaces ethernet eth0 disable')
-#arpTable = ArpTable(vyos.getArp())
-#print(arpTable.getMacFromIp("192.168.100.5"))
-#vyos.stopSession()
-#child.interact()
+if __name__ == "__main__":
+    vyos = Vyos("vyos","192.168.100.1")
+    vyos.startSession()
+    print(vyos.getArp())
+    arpTable = ArpTable(vyos.getArp())
+    #vyos.enterConfig()
+    #print(vyos.getFirewallRules())
+    #vyos.quickConfigure('set interfaces ethernet eth0 disable')
+    #vyos.configure('set interfaces ethernet eth0 disable')
+    #child.interact()
+    vyos.stopSession()

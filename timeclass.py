@@ -18,3 +18,9 @@ class Time:
                 math.floor(seconds/60%60),
                 math.floor(seconds%60),
                 float(seconds-int(seconds)))
+
+    def __str__(self):
+        return f"{self.__hour}:{self.__minute}:{self.__second + self.__millisecond}"
+
+    def __repr__(self):
+        return f"Time({self.__hour}, {self.__minute}, {self.__second}, {str(self.__millisecond)[2:]})"
